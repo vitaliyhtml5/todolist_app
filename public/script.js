@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 import {showTable} from './scripts/show_table.js';
 import {sortData} from './scripts/sort_data.js';
@@ -7,7 +7,18 @@ import {getModal} from './scripts/get_modal.js';
 import {showLoaderMain,closeLoaderMain} from './scripts/components.js';
 import {showEmptyState,removeEmptyState} from './scripts/empty_state.js';
 
-getDataAPI();
+getAccess();
+async function getAccess() {
+    const res = await fetch('/get-access');
+    const data = await res.json();
+
+    if (data.message === 'access is allowed') {
+        getDataAPI();
+    } else {
+        window.location.href = 'login.html';
+    }
+}
+
 async function getDataAPI() {
     showLoaderMain();
     const res = await fetch('/get-all-tasks');

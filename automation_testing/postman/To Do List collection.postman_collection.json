@@ -1,0 +1,562 @@
+{
+	"info": {
+		"_postman_id": "251cbb7c-ab4b-4638-bcb3-665896afdbe7",
+		"name": "To Do List collection",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Get status 201', () => pm.response.to.have.status(201));",
+							"pm.test('Get access', () => pm.expect(pm.response.json().message).to.eql('access is allowed'));",
+							"pm.test('Check token in cookies', () => pm.expect(pm.cookies.has('token')).to.be.true);"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const cookieJar = pm.cookies.jar();",
+							"cookieJar.unset('127.0.0.1', 'token', (err) => console.log(err));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"login\": \"login\",\n    \"password\": \"password\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/get-token",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"get-token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get all tasks",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const dataRes = pm.response.json();",
+							"",
+							"pm.test('Get status 200', () => pm.response.to.have.status(200));",
+							"",
+							"if (!dataRes.length) {",
+							"    pm.test('Get message that no tasks yet', () => pm.expect(dataRes.message).to.eql('no tasks yet'));",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/get-all-tasks",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"get-all-tasks"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get task by id",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const url = pm.environment.get('baseUrl');",
+							"",
+							"pm.sendRequest(`${url}/get-all-tasks`, (err, res) => {",
+							"    if (res.json().message === 'no tasks yet') {",
+							"        pm.variables.set('iteration', 0);",
+							"    } else if (pm.variables.get('iteration') === undefined) {          ",
+							"        pm.variables.set('idTask', getId(res.json()));",
+							"    } else if (pm.variables.get('iteration') === 1) {",
+							"        const lastId = res.json()[res.json().length-1].id;",
+							"        pm.variables.set('idTask', lastId+1);",
+							"    } else if (pm.variables.get('iteration') === 2) {",
+							"        pm.variables.set('idTask', '');",
+							"    }",
+							"});",
+							"",
+							"function getId(res) {",
+							"    const idArr = res.map(item => item.id);",
+							"    return idArr[Math.floor(Math.random() * idArr.length)];",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const dataRes = pm.response.json();",
+							"",
+							"if (pm.variables.get('iteration') === 0) {",
+							"    pm.test('Get status 200', () => pm.response.to.have.status(200));",
+							"    pm.test('Get message that no tasks yet', () => pm.expect(dataRes.message).to.eql('task does not exist'));",
+							"} else if (pm.variables.get('iteration') === undefined) {",
+							"    pm.test('Get status 200', () => pm.response.to.have.status(200));",
+							"    pm.test('Get correct task', () => pm.expect(dataRes.id).to.eql(pm.variables.get('idTask')));",
+							"    pm.variables.set('iteration', 1);",
+							"    postman.setNextRequest('Get task by id');",
+							"} else if (pm.variables.get('iteration') === 1) {",
+							"    pm.test('Get status 200', () => pm.response.to.have.status(200));",
+							"    pm.test('Get message for unexisted task', () => pm.expect(dataRes.message).to.eql('task does not exist'));",
+							"    pm.variables.set('iteration', 2);",
+							"    postman.setNextRequest('Get task by id');",
+							"} else if (pm.variables.get('iteration') === 2) {",
+							"    pm.test('Get status 400', () => pm.response.to.have.status(400));",
+							"    pm.test('Get message that required id', () => pm.expect(dataRes.message).to.eql('id is required'));",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/get-task?id={{idTask}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"get-task"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "{{idTask}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create task",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"if (pm.variables.get('iteration') === undefined) {",
+							"    pm.variables.set('task', '');",
+							"    pm.variables.set('comment', '');",
+							"} else {",
+							"    pm.variables.set('task',pm.variables.replaceIn('{{$randomCatchPhraseNoun}}'));",
+							"    pm.variables.set('comment',pm.variables.replaceIn('{{$randomCatchPhrase}}'));",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (pm.variables.get('iteration') === 2) {",
+							"    pm.test('Get status 201', () => pm.response.to.have.status(201));",
+							"    pm.test('Get message that task was created', () => pm.expect(pm.response.json().message).to.eql('task was created'));",
+							"    setTimeout(checkTask, 400);",
+							"} else {",
+							"    pm.test('Get status 400', () => pm.response.to.have.status(400));",
+							"    pm.test('Get message that data is missed', () => pm.expect(pm.response.json().message).to.eql('some data is missed'));",
+							"    pm.variables.set('iteration', 2);",
+							"    postman.setNextRequest('Create task');",
+							"}",
+							"",
+							"function checkTask() {",
+							"    const url = pm.environment.get('baseUrl');",
+							"    pm.test('Check the created task', () => {",
+							"        pm.sendRequest(`${url}/get-all-tasks`,(err, res) => {",
+							"            pm.expect(res.json()[res.json().length - 1].task).to.eql(pm.variables.get('task'));",
+							"            pm.expect(res.json()[res.json().length - 1].comment).to.eql(pm.variables.get('comment'));",
+							"        });",
+							"    });",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"task\": \"{{task}}\",\n    \"comment\": \"{{comment}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/add-task",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"add-task"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Edit task",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const url = pm.environment.get('baseUrl');",
+							"const status = ['complete', 'incomplete'];",
+							"",
+							"pm.sendRequest(`${url}/get-all-tasks`, (err, res) => {",
+							"    const taskArr = res.json().map(item => item.id);",
+							"    const taskId = taskArr[getRandom(taskArr.length)];",
+							"    const indexTask = taskArr.findIndex(item => item === taskId);",
+							"",
+							"    pm.variables.set('task',pm.variables.replaceIn('{{$randomCatchPhraseNoun}}'));",
+							"    pm.variables.set('comment',pm.variables.replaceIn('{{$randomCatchPhrase}}'));",
+							"    pm.variables.set('status', status[getRandom(status.length)]);",
+							"    pm.variables.set('id', taskId);",
+							"",
+							"    if (pm.variables.get('iteration') === 2) {",
+							"        pm.variables.set('idInit', taskId);",
+							"        const lastId = res.json()[res.json().length-1].id;",
+							"        pm.variables.set('id', lastId+1);",
+							"    } else if (pm.variables.get('iteration') === 3) {",
+							"        pm.variables.set('task','');",
+							"        pm.variables.set('comment','');",
+							"        pm.variables.set('status', '');",
+							"    } else if (pm.variables.get('iteration') === 4) {",
+							"        pm.variables.set('status', pm.variables.replaceIn('{{$randomCatchPhraseNoun}}'));",
+							"    }",
+							"",
+							"    pm.variables.set('initTask', res.json()[indexTask].task);",
+							"    pm.variables.set('initComment',res.json()[indexTask].comment);",
+							"    pm.variables.set('initStatus', res.json()[indexTask].status);",
+							"});",
+							"",
+							"function getRandom(length) {",
+							"    return Math.floor(Math.random() * length);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const url = pm.environment.get('baseUrl');",
+							"",
+							"if (pm.variables.get('iteration') === undefined) {",
+							"    pm.test('Get status 200', () => pm.response.to.have.status(200));",
+							"    pm.test('Get message that task was edited', () => pm.expect(pm.response.json().message).to.eql('task was edited'));",
+							"    setTimeout(() => getEditedTask(pm.variables.get('id')), 400);",
+							"    pm.variables.set('iteration', 2);",
+							"    postman.setNextRequest('Edit task');",
+							"} else if (pm.variables.get('iteration') === 2) {",
+							"    pm.test('Get status 200', () => pm.response.to.have.status(200));",
+							"    pm.test('Get message for unexisted task', () => pm.expect(pm.response.json().message).to.eql('task does not exist'));",
+							"    setTimeout(() => checkUnEditedTask(pm.variables.get('idInit')), 400);",
+							"    pm.variables.set('iteration', 3);",
+							"    postman.setNextRequest('Edit task');",
+							"} else if (pm.variables.get('iteration') === 3) {",
+							"    pm.test('Get status 400', () => pm.response.to.have.status(400));",
+							"    pm.test('Get message that some data is missed', () => pm.expect(pm.response.json().message).to.eql('some data is missed'));",
+							"    setTimeout(() => checkUnEditedTask(pm.variables.get('id')), 400);",
+							"    pm.variables.set('iteration', 4);",
+							"    postman.setNextRequest('Edit task');",
+							"} else if (pm.variables.get('iteration') === 4) {",
+							"    pm.test('Get status 400', () => pm.response.to.have.status(400));",
+							"    pm.test('Get message that value of status is incorrect', () => pm.expect(pm.response.json().message).to.eql('value of status is incorrect'));",
+							"    setTimeout(() => checkUnEditedTask(pm.variables.get('id')), 400);",
+							"    postman.setNextRequest(null);",
+							"}",
+							"",
+							"function getEditedTask(id) {",
+							"    pm.test('Check the created task', () => {",
+							"        pm.sendRequest(`${url}/get-task?id=${id}`, (err, res) => {",
+							"            pm.expect(res.json().task).to.eql(pm.variables.get('task'));",
+							"            pm.expect(res.json().comment).to.eql(pm.variables.get('comment'));",
+							"            pm.expect(res.json().status).to.eql(pm.variables.get('status'));",
+							"        });",
+							"    });",
+							"}",
+							"",
+							"function checkUnEditedTask(id) {",
+							"    pm.test('Check task wasn\\'t been edited', () => {",
+							"        pm.sendRequest(`${url}/get-task?id=${id}`, (err, res) => {",
+							"            pm.expect(res.json().task).to.eql(pm.variables.get('initTask'));",
+							"            pm.expect(res.json().comment).to.eql(pm.variables.get('initComment'));",
+							"            pm.expect(res.json().status).to.eql(pm.variables.get('initStatus'));",
+							"        });",
+							"    });",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id\": {{id}},\n    \"task\": \"{{task}}\",\n    \"comment\": \"{{comment}}\",\n    \"status\": \"{{status}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/edit-task",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"edit-task"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Edit status",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const url = pm.environment.get('baseUrl');",
+							"const status = ['complete', 'incomplete'];",
+							"",
+							"pm.sendRequest(`${url}/get-all-tasks`, (err, res) => {",
+							"    const taskArr = res.json().map(item => item.id);",
+							"    const taskId = taskArr[getRandom(taskArr.length)];",
+							"    const indexTask = taskArr.findIndex(item => item === taskId);",
+							"",
+							"    pm.variables.set('status', status[getRandom(status.length)]);",
+							"    pm.variables.set('id', taskId);",
+							"",
+							"    if (pm.variables.get('iteration') === 2) {",
+							"        pm.variables.set('idInit', taskId);",
+							"        const lastId = res.json()[res.json().length-1].id;",
+							"        pm.variables.set('id', lastId+1);",
+							"    } else if (pm.variables.get('iteration') === 3) {",
+							"        pm.variables.set('status', '');",
+							"    } else if (pm.variables.get('iteration') === 4) {",
+							"        pm.variables.set('status', pm.variables.replaceIn('{{$randomCatchPhraseNoun}}'));",
+							"    }",
+							"",
+							"    pm.variables.set('initTask', res.json()[indexTask].task);",
+							"    pm.variables.set('initComment',res.json()[indexTask].comment);",
+							"    pm.variables.set('initStatus', res.json()[indexTask].status);",
+							"});",
+							"",
+							"function getRandom(length) {",
+							"    return Math.floor(Math.random() * length);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const url = pm.environment.get('baseUrl');",
+							"",
+							"if (pm.variables.get('iteration') === undefined) {",
+							"    pm.test('Get status 200', () => pm.response.to.have.status(200));",
+							"    pm.test('Get message that status was edited', () => pm.expect(pm.response.json().message).to.eql('status was changed'));",
+							"    setTimeout(() => getEditedTask(pm.variables.get('id')), 400);",
+							"    pm.variables.set('iteration', 2);",
+							"    postman.setNextRequest('Edit status');",
+							"} else if (pm.variables.get('iteration') === 2) {",
+							"    pm.test('Get status 200', () => pm.response.to.have.status(200));",
+							"    pm.test('Get message for unexisted task', () => pm.expect(pm.response.json().message).to.eql('task does not exist'));",
+							"    setTimeout(() => checkUnEditedTask(pm.variables.get('idInit')), 400);",
+							"    pm.variables.set('iteration', 3);",
+							"    postman.setNextRequest('Edit status');",
+							"} else if (pm.variables.get('iteration') === 3) {",
+							"    pm.test('Get status 400', () => pm.response.to.have.status(400));",
+							"    pm.test('Get message that some data is missed', () => pm.expect(pm.response.json().message).to.eql('some data is missed'));",
+							"    setTimeout(() => checkUnEditedTask(pm.variables.get('id')), 400);",
+							"    pm.variables.set('iteration', 4);",
+							"    postman.setNextRequest('Edit status');",
+							"} else if (pm.variables.get('iteration') === 4) {",
+							"    pm.test('Get status 400', () => pm.response.to.have.status(400));",
+							"    pm.test('Get message that value of status is incorrect', () => pm.expect(pm.response.json().message).to.eql('value of status is incorrect'));",
+							"    setTimeout(() => checkUnEditedTask(pm.variables.get('id')), 400);",
+							"    postman.setNextRequest(null);",
+							"}",
+							"",
+							"function getEditedTask(id) {",
+							"    pm.test('Check the created task', () => {",
+							"        pm.sendRequest(`${url}/get-task?id=${id}`, (err, res) => pm.expect(res.json().status).to.eql(pm.variables.get('status')));",
+							"    });",
+							"}",
+							"",
+							"function checkUnEditedTask(id) {",
+							"    pm.test('Check task wasn\\'t been edited', () => {",
+							"        pm.sendRequest(`${url}/get-task?id=${id}`, (err, res) => pm.expect(res.json().status).to.eql(pm.variables.get('initStatus')));",
+							"    });",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PATCH",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id\": {{id}},\n    \"status\": \"{{status}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/edit-status",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"edit-status"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Remove task",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const url = pm.environment.get('baseUrl');",
+							"",
+							"pm.sendRequest(`${url}/get-all-tasks`, (err, res) => {",
+							"    const idArr = res.json().map(item => item.id);",
+							"    const taskId = idArr[Math.floor(Math.random() * idArr.length)];",
+							"    pm.variables.set('taskId', taskId);",
+							"    ",
+							"    if (pm.variables.get('iteration') === 2) {",
+							"        const lastId = res.json()[res.json().length-1].id;",
+							"        pm.variables.set('taskId', lastId+1);",
+							"    } else if (pm.variables.get('iteration') === 3) {",
+							"        pm.variables.set('idInit', taskId);",
+							"        pm.variables.set('taskId', '');",
+							"    }",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const url = pm.environment.get('baseUrl');",
+							"",
+							"if (pm.variables.get('iteration') === undefined) {",
+							"    pm.test('Get status 200', () => pm.response.to.have.status(200));",
+							"    pm.test('Get message that status was removed', () => pm.expect(pm.response.json().message).to.eql('task was removed'));",
+							"    setTimeout(() => getRemovedTask(pm.variables.get('taskId')), 400);",
+							"    pm.variables.set('iteration', 2);",
+							"    postman.setNextRequest('Remove task');",
+							"} else if (pm.variables.get('iteration') === 2) {",
+							"    pm.test('Get status 200', () => pm.response.to.have.status(200));",
+							"    pm.test('Get message for unexisted task', () => pm.expect(pm.response.json().message).to.eql('task does not exist'));",
+							"    pm.variables.set('iteration', 3);",
+							"    postman.setNextRequest('Remove task');",
+							"}  else if (pm.variables.get('iteration') === 3) {",
+							"    pm.test('Get status 400', () => pm.response.to.have.status(400));",
+							"    pm.test('Get message that required id', () => pm.expect(pm.response.json().message).to.eql('id is required'));",
+							"    setTimeout(() => checkUnRemovedTask(pm.variables.get('idInit')), 400);",
+							"}",
+							"",
+							"function getRemovedTask(id) {",
+							"    pm.test('Check removed task', () => {",
+							"        pm.sendRequest(`${url}/get-task?id=${id}`, (err, res) => pm.expect(res.json().message).to.eql('task does not exist'));",
+							"    });",
+							"}",
+							"",
+							"function checkUnRemovedTask(id) {",
+							"    pm.test('Check task wasn\\'t been removed', () => {",
+							"        pm.sendRequest(`${url}/get-task?id=${id}`, (err, res) => pm.expect(res.json().id).to.eql(id));",
+							"    });",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/delete-task?id={{taskId}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"delete-task"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "{{taskId}}"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

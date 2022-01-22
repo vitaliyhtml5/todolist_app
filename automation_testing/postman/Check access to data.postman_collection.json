@@ -1,0 +1,330 @@
+{
+	"info": {
+		"_postman_id": "0b63fcba-d225-4308-9ffd-3429eef252d6",
+		"name": "Check access to data",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Login access",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Get status 401', () => pm.response.to.have.status(401));",
+							"pm.test('Get wrong credentials message', () => pm.expect(pm.response.json().message).to.eql('Wrong credentials'));"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const cookieJar = pm.cookies.jar();",
+							"cookieJar.unset('127.0.0.1', 'token', (err) => console.log(err));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"login\": \"IncorrectLogin\",\n    \"password\": \"IncorrectPassword\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/get-token",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"get-token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create task access",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const cookieJar = pm.cookies.jar();",
+							"cookieJar.unset('127.0.0.1', 'token', (err) => console.log(err));"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Get status 401', () => pm.response.to.have.status(401));",
+							"pm.test('Get message Unauthorized\"', () => pm.expect(pm.response.json().message).to.eql('Unauthorized'));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"task\": \"Test\",\n    \"comment\": \"Test\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/add-task",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"add-task"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get all tasks  access",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Get status 401', () => pm.response.to.have.status(401));",
+							"pm.test('Get message Unauthorized\"', () => pm.expect(pm.response.json().message).to.eql('Unauthorized'));"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const cookieJar = pm.cookies.jar();",
+							"cookieJar.unset('127.0.0.1', 'token', (err) => console.log(err));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/get-all-tasks",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"get-all-tasks"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get task by id access",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const cookieJar = pm.cookies.jar();",
+							"cookieJar.unset('127.0.0.1', 'token', (err) => console.log(err));"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const cookieJar = pm.cookies.jar();",
+							"cookieJar.unset('127.0.0.1', 'token', (err) => console.log(err));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/get-task?id=1",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"get-task"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Edit task access",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const cookieJar = pm.cookies.jar();",
+							"cookieJar.unset('127.0.0.1', 'token', (err) => console.log(err));"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Get status 401', () => pm.response.to.have.status(401));",
+							"pm.test('Get message Unauthorized\"', () => pm.expect(pm.response.json().message).to.eql('Unauthorized'));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id\": 1,\n    \"task\": \"Test\",\n    \"comment\": \"Test\",\n    \"status\": \"incomplete\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/edit-task",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"edit-task"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Edit status access",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const cookieJar = pm.cookies.jar();",
+							"cookieJar.unset('127.0.0.1', 'token', (err) => console.log(err));"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Get status 401', () => pm.response.to.have.status(401));",
+							"pm.test('Get message Unauthorized\"', () => pm.expect(pm.response.json().message).to.eql('Unauthorized'));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PATCH",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id\": 1,\n    \"status\": \"complete\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/edit-status",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"edit-status"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Remove task access",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const cookieJar = pm.cookies.jar();",
+							"cookieJar.unset('127.0.0.1', 'token', (err) => console.log(err));"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Get status 401', () => pm.response.to.have.status(401));",
+							"pm.test('Get message Unauthorized\"', () => pm.expect(pm.response.json().message).to.eql('Unauthorized'));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/delete-task?id=1",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"delete-task"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
